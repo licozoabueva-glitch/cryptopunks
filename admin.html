@@ -183,8 +183,8 @@
   <script>
     const STORAGE_KEY = "cryptopunks-admin-state";
     const demo = [
-      { id: 7213, status: "minted", note: "Featured punk", updatedAt: new Date().toISOString() },
-      { id: 112, status: "listed", note: "Watch floor movement", updatedAt: new Date().toISOString() }
+      { id: 7213, status: "minted", note: "Featured punk", updatedAt: "2026-01-01T10:00:00.000Z" },
+      { id: 112, status: "listed", note: "Watch floor movement", updatedAt: "2026-01-01T09:00:00.000Z" }
     ];
 
     const loadState = () => {
@@ -225,7 +225,9 @@
       els.listed.textContent = statusCount("listed");
       els.minted.textContent = statusCount("minted");
       els.flagged.textContent = statusCount("flagged");
-      const sorted = [...state].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      const sorted = [...state].sort((a, b) =>
+        Date.parse(String(b.updatedAt || 0)) - Date.parse(String(a.updatedAt || 0))
+      );
       els.rows.innerHTML = sorted.map((punk) => `
         <tr>
           <td>#${punk.id}</td>
