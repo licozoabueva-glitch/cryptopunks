@@ -63,6 +63,12 @@
       font-weight: 600;
       align-self: end;
     }
+    .formMessage {
+      margin-top: 10px;
+      color: var(--warn);
+      min-height: 18px;
+      font-size: 13px;
+    }
     input, select, button {
       width: 100%;
       border-radius: 8px;
@@ -170,6 +176,7 @@
         </thead>
         <tbody id="punkRows"></tbody>
       </table>
+      <p class="formMessage" id="formMessage" role="status" aria-live="polite"></p>
     </section>
   </main>
 
@@ -201,15 +208,16 @@
       total: document.getElementById("totalCount"),
       listed: document.getElementById("listedCount"),
       minted: document.getElementById("mintedCount"),
-      flagged: document.getElementById("flaggedCount")
+      flagged: document.getElementById("flaggedCount"),
+      formMessage: document.getElementById("formMessage")
     };
 
     const statusCount = (status) => state.filter((p) => p.status === status).length;
-    const escapeHtml = (value) => value
+    const escapeHtml = (value) => String(value ?? "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
-      .replace(/\"/g, "&quot;")
+      .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
 
     const render = () => {
@@ -231,7 +239,11 @@
     els.form.addEventListener("submit", (event) => {
       event.preventDefault();
       const id = Number(els.id.value);
-      if (!Number.isInteger(id) || id < 0 || id > 9999) return;
+      if (!Number.isInteger(id) || id < 0 || id > 9999) {
+        els.formMessage.textContent = "Please enter a valid Punk ID between 0 and 9999.";
+        return;
+      }
+      els.formMessage.textContent = "";
       const item = {
         id,
         status: els.status.value,
