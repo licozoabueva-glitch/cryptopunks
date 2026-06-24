@@ -57,6 +57,12 @@
       grid-template-columns: 1fr 1fr 1fr auto;
       gap: 10px;
     }
+    label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      align-self: end;
+    }
     input, select, button {
       width: 100%;
       border-radius: 8px;
@@ -140,6 +146,10 @@
     <section class="panel">
       <h2>Update Punk</h2>
       <form id="punkForm">
+        <label for="punkId">Punk ID</label>
+        <label for="punkStatus">Status</label>
+        <label for="punkNote">Note</label>
+        <span aria-hidden="true"></span>
         <input id="punkId" type="number" min="0" max="9999" placeholder="Punk ID (0-9999)" required>
         <select id="punkStatus" required>
           <option value="listed">listed</option>
@@ -195,6 +205,12 @@
     };
 
     const statusCount = (status) => state.filter((p) => p.status === status).length;
+    const escapeHtml = (value) => value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
 
     const render = () => {
       els.total.textContent = state.length;
@@ -206,7 +222,7 @@
         <tr>
           <td>#${punk.id}</td>
           <td><span class="badge ${punk.status}">${punk.status}</span></td>
-          <td>${(punk.note || "").replace(/[<>&"']/g, "")}</td>
+          <td>${escapeHtml(punk.note || "")}</td>
           <td>${new Date(punk.updatedAt).toLocaleString()}</td>
         </tr>
       `).join("");
@@ -222,8 +238,8 @@
         note: els.note.value.trim(),
         updatedAt: new Date().toISOString()
       };
-      const i = state.findIndex((p) => p.id === id);
-      if (i >= 0) state[i] = item;
+      const existingIndex = state.findIndex((p) => p.id === id);
+      if (existingIndex >= 0) state[existingIndex] = item;
       else state.push(item);
       saveState(state);
       els.form.reset();
