@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CryptoPunks Admin Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #171a21;
+      --panel-2: #202534;
+      --text: #edf0f8;
+      --muted: #9fa8bc;
+      --accent: #6d78ff;
+      --good: #2ba97d;
+      --warn: #f5a524;
+      --bad: #e5484d;
+      --border: #2b3245;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .layout {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      gap: 18px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    h1, h2 { margin: 0 0 10px; }
+    p { margin: 0; color: var(--muted); }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .stat {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .stat .label { color: var(--muted); font-size: 12px; }
+    .stat .value { font-size: 24px; margin-top: 6px; font-weight: 700; }
+    form {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 10px;
+    }
+    label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      align-self: end;
+    }
+    .formMessage {
+      margin-top: 10px;
+      color: var(--warn);
+      min-height: 18px;
+      font-size: 13px;
+    }
+    input, select, button {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #121622;
+      color: var(--text);
+      padding: 10px;
+    }
+    button {
+      cursor: pointer;
+      background: var(--accent);
+      border-color: #5d68ec;
+      font-weight: 600;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td {
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 6px;
+      font-size: 14px;
+    }
+    .badge {
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .minted { background: rgba(43,169,125,.16); color: var(--good); }
+    .listed { background: rgba(109,120,255,.16); color: #9ba4ff; }
+    .flagged { background: rgba(229,72,77,.16); color: var(--bad); }
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .link {
+      color: #aab1ff;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    @media (max-width: 900px) {
+      form { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <section class="panel toolbar">
+      <div>
+        <h1>Admin Dashboard</h1>
+        <p>Manage punk status notes and monitor collection activity.</p>
+      </div>
+      <a class="link" href="/index.html">← Back to site</a>
+    </section>
+
+    <section class="row">
+      <article class="stat">
+        <div class="label">Tracked Punks</div>
+        <div class="value" id="totalCount">0</div>
+      </article>
+      <article class="stat">
+        <div class="label">Listed</div>
+        <div class="value" id="listedCount">0</div>
+      </article>
+      <article class="stat">
+        <div class="label">Minted</div>
+        <div class="value" id="mintedCount">0</div>
+      </article>
+      <article class="stat">
+        <div class="label">Flagged</div>
+        <div class="value" id="flaggedCount">0</div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h2>Update Punk</h2>
+      <form id="punkForm">
+        <label for="punkId">Punk ID</label>
+        <label for="punkStatus">Status</label>
+        <label for="punkNote">Note</label>
+        <span aria-hidden="true"></span>
+        <input id="punkId" type="number" min="0" max="9999" placeholder="Punk ID (0-9999)" required>
+        <select id="punkStatus" required>
+          <option value="listed">listed</option>
+          <option value="minted">minted</option>
+          <option value="flagged">flagged</option>
+        </select>
+        <input id="punkNote" type="text" maxlength="80" placeholder="Optional note">
+        <button type="submit">Save</button>
+      </form>
+      <table>
+        <thead>
+          <tr>
+            <th>Punk</th>
+            <th>Status</th>
+            <th>Note</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody id="punkRows"></tbody>
+      </table>
+      <p class="formMessage" id="formMessage" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "cryptopunks-admin-state";
+    const demo = [
+      { id: 7213, status: "minted", note: "Featured punk", updatedAt: "2026-01-01T10:00:00.000Z" },
+      { id: 112, status: "listed", note: "Watch floor movement", updatedAt: "2026-01-01T09:00:00.000Z" }
+    ];
+
+    const loadState = () => {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        return Array.isArray(parsed) ? parsed : demo;
+      } catch {
+        return demo;
+      }
+    };
+
+    const saveState = (state) => localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const state = loadState();
+
+    const els = {
+      form: document.getElementById("punkForm"),
+      id: document.getElementById("punkId"),
+      status: document.getElementById("punkStatus"),
+      note: document.getElementById("punkNote"),
+      rows: document.getElementById("punkRows"),
+      total: document.getElementById("totalCount"),
+      listed: document.getElementById("listedCount"),
+      minted: document.getElementById("mintedCount"),
+      flagged: document.getElementById("flaggedCount"),
+      formMessage: document.getElementById("formMessage")
+    };
+
+    const statusCount = (status) => state.filter((p) => p.status === status).length;
+    const escapeHtml = (value) => String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
+    const render = () => {
+      els.total.textContent = state.length;
+      els.listed.textContent = statusCount("listed");
+      els.minted.textContent = statusCount("minted");
+      els.flagged.textContent = statusCount("flagged");
+      const sorted = [...state].sort((a, b) =>
+        Date.parse(String(b.updatedAt || 0)) - Date.parse(String(a.updatedAt || 0))
+      );
+      els.rows.innerHTML = sorted.map((punk) => `
+        <tr>
+          <td>#${punk.id}</td>
+          <td><span class="badge ${punk.status}">${punk.status}</span></td>
+          <td>${escapeHtml(punk.note || "")}</td>
+          <td>${new Date(punk.updatedAt).toLocaleString()}</td>
+        </tr>
+      `).join("");
+    };
+
+    els.form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const id = Number(els.id.value);
+      if (!Number.isInteger(id) || id < 0 || id > 9999) {
+        els.formMessage.textContent = "Please enter a valid Punk ID between 0 and 9999.";
+        return;
+      }
+      els.formMessage.textContent = "";
+      const item = {
+        id,
+        status: els.status.value,
+        note: els.note.value.trim(),
+        updatedAt: new Date().toISOString()
+      };
+      const existingIndex = state.findIndex((p) => p.id === id);
+      if (existingIndex >= 0) state[existingIndex] = item;
+      else state.push(item);
+      saveState(state);
+      els.form.reset();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
